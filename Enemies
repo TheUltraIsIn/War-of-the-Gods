@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angelic Realm and Dark Church Levels</title>
+    <style>
+        body {
+            background-color: #f0f8ff;
+            overflow: hidden;
+        }
+        #gameCanvas {
+            border: 2px solid #000;
+            background-color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const angel = {
+            x: 400,
+            y: 300,
+            speed: 5,
+            health: 100,
+            gauge: 0,
+            width: 50,
+            height: 50,
+            draw() {
+                ctx.fillStyle = 'white';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                // Health bar
+                ctx.fillStyle = 'red';
+                ctx.fillRect(this.x, this.y - 10, this.width * (this.health / 100), 5);
+            },
+            takeDamage(amount) {
+                this.health -= amount;
+                if (this.health <= 0) {
+                    console.log("Player has been defeated!");
+                    // Reset or end game logic
+                }
+            }
+        };
+
+        const levels = {
+            angelicRealm: {
+                background: 'linear-gradient(to bottom, #e0f7fa, #ffffff)',
+                obstacles: [{ x: 200, y: 200, width: 50, height: 50 }],
+                scrollX: 0
+            },
+            darkChurch: {
+                background: 'linear-gradient(to bottom, #3e2723, #000000)',
+                obstacles: [{ x: 600, y: 300, width: 50, height: 50 }],
+                scrollX: 0
+            }
+        };
+
+        let currentLevel = levels.angelicRealm;
+        let enemies = [];
+
+        function drawBackground() {
+            ctx.fillStyle = currentLevel.background;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function drawObstacles() {
+            ctx.fillStyle = 'gray';
+            currentLevel.obstacles.forEach(obstacle => {
+                ctx.fillRect(obstacle.x + currentLevel.scrollX, obstacle.y, obstacle.width, obstacle.height);
+            });
+        }
+
+        function moveAngel(e) {
+            let newX = angel.x;
+            let newY = angel.y;
+            switch(e.key) {
+                case 'ArrowUp':
+                    newY -= angel.speed;
+                    break;
+                case 'ArrowDown':
+                    newY += angel.speed;
+                    break;
+                case 'ArrowLeft':
+                    newX -= angel.speed;
+                    currentLevel.scrollX += angel.speed;
+                    break;
+                case 'ArrowRight':
+                    newX += angel.speed;
+                    currentLevel.scrollX -= angel.speed;
+                    break;
+            }
+            if (!checkCollision(newX, newY)) {
+                angel.x = newX;
+                angel.y = newY;
+            }
+        }
+
+        function checkCollision(newX, newY) {
+            return currentLevel.obstacles.some(obstacle => {
+                return newX < obstacle.x + obstacle.width + currentLevel.scrollX &&
+                       newX + angel.width > obstacle.x + currentLevel.scrollX &&
+                       newY < obstacle.y + obstacle.height &&
+                       newY + angel.height > obstacle.y;
+            });
+        }
+
+        function switchLevel() {
+            currentLevel = currentLevel === levels.angelicRealm ? levels.darkChurch : levels.angelicRealm;
+            angel.x = 400; // Reset position
+            angel.y = 300;
+            currentLevel.scrollX = 0;
+            enemies = []; // Clear existing enemies
+        }
+
+        function spawnEnemy() {
+            const enemyType = currentLevel === levels.angelicRealm ? 'angel' : 'demon';
+            const enemy = {
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                width: 30,
+                height: 30,
+                speed: 2,
+                type: enemyType,
+                attackCooldown: 0,
+                damage: 10,
+                draw() {
+                    if (this.type === 'angel') {
+                        // Draw angel enemy
+                        ctx.fillStyle = 'lightblue';
+                        ctx.fillRect(this.x, this.y, this.width, this.height);
+                        // Wings
+                        ctx.fillStyle = 'white';
+                        ctx.beginPath();
+                        ctx.moveTo(this.x, this.y);
+                        ctx.lineTo(this.x - 20, this.y - 20);
+                        ctx.lineTo(this.x, this.y - 10);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.moveTo(this.x + this.width, this.y);
+                        ctx.lineTo(this.x + this.width + 20, this.y - 20);
+                        ctx.lineTo(this.x + this.width, this.y - 10);
+                        ctx.fill();
+                    } else {
+                        // Draw demon enemy
+                        ctx.fillStyle = 'black';
+                        ctx.fillRect(this.x, this.y, this.width, this.height);
+                        // Wings
+                        ctx.fillStyle = 'red';
+                        ctx.beginPath();
+                        ctx.moveTo(this.x, this.y);
+                        ctx.lineTo(this.x - 20, this.y - 20);
+                        ctx.lineTo(this.x, this.y - 10);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.moveTo(this.x + this.width, this.y);
+                        ctx.lineTo(this.x + this.width + 20, this.y - 20);
+                        ctx.lineTo(this.x + this.width, this.y - 10);
+                        ctx.fill();
+                    }
+                },
+                update() {
+                    // Simple movement logic towards the player
+                    if (this.x < angel.x) this.x += this.speed;
+                    if (this.x > angel.x) this.x -= this.speed;
+                    if (this.y < angel.y) this.y += this.speed;
+                    if (this.y > angel.y) this.y -= this.speed;
+
+                    // Attack logic
+                    if (this.attackCooldown <= 0 && this.isCollidingWithPlayer()) {
+                        angel.takeDamage(this.damage);
+                        this.attackCooldown = 60; // Cooldown period
+                    }
+                    if (this.attackCooldown > 0) this.attackCooldown--;
+                },
+                isCollidingWithPlayer() {
+                    return this.x < angel.x + angel.width &&
+                           this.x + this.width > angel.x &&
+                           this.y < angel.y + angel.height &&
+                           this.y + this.height > angel.y;
+                }
+            };
+            enemies.push(enemy);
+        }
+
+        function updateEnemies() {
+            enemies.forEach(enemy => {
+                enemy.update();
+                enemy.draw();
+            });
+        }
+
+        function gameLoop() {
+            drawBackground();
+            drawObstacles();
+            angel.draw();
+            updateEnemies();
+            requestAnimationFrame(gameLoop);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            moveAngel(e);
+            if (e.key === 'Enter') switchLevel();
+        });
+
+        // Spawn a new enemy every 3 seconds
+        setInterval(spawnEnemy, 3000);
+
+        gameLoop();
+    </script>
+</body>
+</html>
