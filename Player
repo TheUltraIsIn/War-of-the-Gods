@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Angel Character</title>
+    <style>
+        body {
+            background-color: #f0f8ff;
+            overflow: hidden;
+        }
+        #gameCanvas {
+            border: 2px solid #000;
+            background-color: #fff;
+        }
+        .angel {
+            width: 50px;
+            height: 50px;
+            background-color: white;
+            border-radius: 50%;
+            position: absolute;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let angel = {
+            x: 400,
+            y: 300,
+            speed: 5,
+            health: 100,
+            gauge: 0,
+            isAttacking: false,
+            attackCooldown: 0,
+            draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 25, 0, Math.PI * 2);
+                ctx.fillStyle = 'white';
+                ctx.fill();
+                ctx.closePath();
+                // Additional features like health bar
+                ctx.fillStyle = 'red';
+                ctx.fillRect(this.x - 25, this.y - 40, 50 * (this.health / 100), 5);
+            },
+            move(e) {
+                if (this.attackCooldown > 0) return;
+                switch(e.key) {
+                    case 'ArrowUp':
+                        this.y -= this.speed;
+                        break;
+                    case 'ArrowDown':
+                        this.y += this.speed;
+                        break;
+                    case 'ArrowLeft':
+                        this.x -= this.speed;
+                        break;
+                    case 'ArrowRight':
+                        this.x += this.speed;
+                        break;
+                    case 'a':
+                    case 'b':
+                    case 'x':
+                    case 'y':
+                        this.attackWithSpear();
+                        break;
+                    case 'o':
+                        if (this.gauge >= 100) {
+                            this.unleashLaserBarrage();
+                            this.gauge = 0;
+                        }
+                        break;
+                }
+                this.draw();
+            },
+            attackWithSpear() {
+                if (this.isAttacking) return;
+                console.log('Spear attack!');
+                this.gauge += 10;
+                this.isAttacking = true;
+                this.attackCooldown = 20; // Cooldown for the next attack
+                setTimeout(() => {
+                    this.isAttacking = false;
+                }, 500); // Attack animation duration
+            },
+            unleashLaserBarrage() {
+                console.log('Angelic White Laser Barrage!');
+                // Special attack logic
+            }
+        };
+
+        function gameLoop() {
+            if (angel.attackCooldown > 0) angel.attackCooldown--;
+            angel.draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        document.addEventListener('keydown', (e) => angel.move(e));
+        gameLoop();
+    </script>
+</body>
+</html>
