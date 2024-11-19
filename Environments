@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angelic Realm and Dark Church Levels</title>
+    <style>
+        body {
+            background-color: #f0f8ff;
+            overflow: hidden;
+        }
+        #gameCanvas {
+            border: 2px solid #000;
+            background-color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const angel = {
+            x: 400,
+            y: 300,
+            speed: 5,
+            health: 100,
+            gauge: 0,
+            width: 50,
+            height: 50,
+            isAttacking: false,
+            attackCooldown: 0,
+            draw() {
+                ctx.fillStyle = 'white';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                // Health bar
+                ctx.fillStyle = 'red';
+                ctx.fillRect(this.x, this.y - 10, this.width * (this.health / 100), 5);
+            }
+        };
+
+        const levels = {
+            angelicRealm: {
+                background: 'linear-gradient(to bottom, #e0f7fa, #ffffff)',
+                obstacles: [{ x: 200, y: 200, width: 50, height: 50 }],
+                scrollX: 0
+            },
+            darkChurch: {
+                background: 'linear-gradient(to bottom, #3e2723, #000000)',
+                obstacles: [{ x: 600, y: 300, width: 50, height: 50 }],
+                scrollX: 0
+            }
+        };
+
+        let currentLevel = levels.angelicRealm;
+
+        function drawBackground() {
+            ctx.fillStyle = currentLevel.background;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function drawObstacles() {
+            ctx.fillStyle = 'gray';
+            currentLevel.obstacles.forEach(obstacle => {
+                ctx.fillRect(obstacle.x + currentLevel.scrollX, obstacle.y, obstacle.width, obstacle.height);
+            });
+        }
+
+        function moveAngel(e) {
+            let newX = angel.x;
+            let newY = angel.y;
+            switch(e.key) {
+                case 'ArrowUp':
+                    newY -= angel.speed;
+                    break;
+                case 'ArrowDown':
+                    newY += angel.speed;
+                    break;
+                case 'ArrowLeft':
+                    newX -= angel.speed;
+                    currentLevel.scrollX += angel.speed;
+                    break;
+                case 'ArrowRight':
+                    newX += angel.speed;
+                    currentLevel.scrollX -= angel.speed;
+                    break;
+            }
+            if (!checkCollision(newX, newY)) {
+                angel.x = newX;
+                angel.y = newY;
+            }
+        }
+
+        function checkCollision(newX, newY) {
+            return currentLevel.obstacles.some(obstacle => {
+                return newX < obstacle.x + obstacle.width + currentLevel.scrollX &&
+                       newX + angel.width > obstacle.x + currentLevel.scrollX &&
+                       newY < obstacle.y + obstacle.height &&
+                       newY + angel.height > obstacle.y;
+            });
+        }
+
+        function switchLevel() {
+            currentLevel = currentLevel === levels.angelicRealm ? levels.darkChurch : levels.angelicRealm;
+            angel.x = 400; // Reset position
+            angel.y = 300;
+            currentLevel.scrollX = 0;
+        }
+
+        function gameLoop() {
+            drawBackground();
+            drawObstacles();
+            angel.draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            moveAngel(e);
+            if (e.key === 'Enter') switchLevel();
+        });
+        gameLoop();
+    </script>
+</body>
+</html>
